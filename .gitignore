@@ -1,0 +1,62 @@
+# Sequencing data
+*.fastq
+*.fastq.gz
+*.fq
+*.fq.gz
+
+# Alignments
+*.bam
+*.sam
+*.cram
+*.bai
+*.crai
+
+# Reference files and indexes
+*.fa
+*.fasta
+*.fna
+*.gtf
+*.gff
+*.gff3
+*.bt2
+*.bt2l
+*.idx
+*.dmnd
+
+# Results / runs / logs
+results/
+runs/
+logs/
+work/
+tmp/
+cache/
+*.log
+
+# Pipeline generated files
+pipeline_config.json
+pipeline.log
+.pipeline_state/
+00_samples.tsv
+00_metadata.tsv
+
+# Local config / secrets
+.env
+config/local*
+config/config.sh
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# R
+.Rhistory
+.RData
+.Rproj.user/
+
+# IDE / system
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
