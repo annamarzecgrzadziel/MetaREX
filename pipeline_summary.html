@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.10" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>pipeline_summary</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 95vw;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a
+href="#metarex-a-standardized-workflow-for-quantitative-profiling-of-active-antimicrobial-resistance-genes-in-soil-metatranscriptomes"
+id="toc-metarex-a-standardized-workflow-for-quantitative-profiling-of-active-antimicrobial-resistance-genes-in-soil-metatranscriptomes">MetaREX:
+a standardized workflow for quantitative profiling of active
+antimicrobial resistance genes in soil metatranscriptomes</a>
+<ul>
+<li><a href="#pipeline-stages" id="toc-pipeline-stages">Pipeline
+Stages</a></li>
+<li><a href="#pipeline-modules-source-scripts"
+id="toc-pipeline-modules-source-scripts">Pipeline Modules / Source
+Scripts</a></li>
+<li><a href="#multiqc-modules" id="toc-multiqc-modules">MultiQC
+Modules</a></li>
+<li><a href="#computational-environments"
+id="toc-computational-environments">Computational Environments</a></li>
+<li><a href="#command-line-tools-and-versions"
+id="toc-command-line-tools-and-versions">Command-line Tools and
+Versions</a></li>
+<li><a href="#r-packages" id="toc-r-packages">R Packages</a></li>
+<li><a href="#databases-and-reference-resources"
+id="toc-databases-and-reference-resources">Databases and Reference
+Resources</a></li>
+<li><a href="#key-parameters-currently-encoded-in-the-app"
+id="toc-key-parameters-currently-encoded-in-the-app">Key Parameters
+Currently Encoded in the App</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1
+id="metarex-a-standardized-workflow-for-quantitative-profiling-of-active-antimicrobial-resistance-genes-in-soil-metatranscriptomes">MetaREX:
+a standardized workflow for quantitative profiling of active
+antimicrobial resistance genes in soil metatranscriptomes</h1>
+<p>This document summarizes the software stack, computational
+environments, databases, and workflow of the local RNA-seq
+metatranscriptomic AMR pipeline implemented in
+<code>rnaseq_amr_pipeline_app.py</code>.</p>
+<h2 id="pipeline-stages">Pipeline Stages</h2>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Main operation</th>
+<th>Main inputs</th>
+<th>Main outputs</th>
+<th>Core tools</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sample discovery</td>
+<td>Detect paired-end FASTQ R1/R2 files; optional test-run
+downsampling</td>
+<td>Raw FASTQ</td>
+<td><code>00_samples.tsv</code>, optional
+<code>00_test_run_downsampled/</code></td>
+<td>Python standard library</td>
+</tr>
+<tr>
+<td>rRNA estimation</td>
+<td>Estimate rRNA fraction before depletion</td>
+<td>Raw paired FASTQ</td>
+<td><code>00_rRNA_content/rrna_content_summary.tsv</code></td>
+<td>Bowtie2, SILVA rRNA index</td>
+</tr>
+<tr>
+<td>Read trimming/QC</td>
+<td>Adapter/quality trimming and per-sample QC</td>
+<td>Raw paired FASTQ</td>
+<td><code>01_fastp_trim_QC/fastq_clean/</code>, fastp HTML/JSON,
+MultiQC</td>
+<td>fastp, MultiQC</td>
+</tr>
+<tr>
+<td>rRNA removal</td>
+<td>Remove reads mapping to SILVA rRNA</td>
+<td>Clean paired FASTQ</td>
+<td><code>02_rRNA_removed/*.rRNAfree_R*.fastq.gz</code></td>
+<td>Bowtie2, SILVA rRNA index</td>
+</tr>
+<tr>
+<td>rRNA stats</td>
+<td>Summarize read retention after rRNA depletion</td>
+<td>Raw, clean and rRNA-free FASTQ</td>
+<td><code>02a_rRNA_stats/rrna_removal_stats.tsv</code></td>
+<td>Python standard library</td>
+</tr>
+<tr>
+<td>Assembly</td>
+<td>De novo transcript assembly per sample</td>
+<td>rRNA-free or clean reads</td>
+<td><code>03_assembly_megahit/*/final.contigs.fa</code></td>
+<td>MEGAHIT</td>
+</tr>
+<tr>
+<td>Assembly QC</td>
+<td>Assembly statistics without reference genome</td>
+<td>Contigs</td>
+<td><code>03c_quast_metaquast/report.tsv</code>, MultiQC</td>
+<td>QUAST / MetaQUAST</td>
+</tr>
+<tr>
+<td>CDS prediction</td>
+<td>Predict coding sequences and peptides</td>
+<td>Contigs</td>
+<td><code>04a_all_cds/*.cds.fa</code>,
+<code>04b_all_pep/*.pep</code></td>
+<td>TransDecoder</td>
+</tr>
+<tr>
+<td>CDS stats</td>
+<td>Compare CDS count and length statistics</td>
+<td>CDS FASTA</td>
+<td><code>05_cds_stats/cds_comparison.tsv</code></td>
+<td>Python standard library</td>
+</tr>
+<tr>
+<td>Quantification</td>
+<td>Quantify expression against sample-specific CDS</td>
+<td>CDS FASTA and reads</td>
+<td><code>06_quant_salmon/*/quant.sf</code></td>
+<td>Salmon</td>
+</tr>
+<tr>
+<td>Matrix building</td>
+<td>Collect TPM and count matrices</td>
+<td>Salmon <code>quant.sf</code></td>
+<td><code>07_salmon_matrices/salmon_TPM_all.tsv</code>,
+<code>salmon_COUNTS_CDS_matrix.tsv</code></td>
+<td>Python standard library</td>
+</tr>
+<tr>
+<td>Functional annotation</td>
+<td>Annotate predicted proteins</td>
+<td>Peptide FASTA</td>
+<td><code>08_eggnog/eggnog_cds.emapper.annotations</code></td>
+<td>eggNOG-mapper, DIAMOND, MMseqs2</td>
+</tr>
+<tr>
+<td>Functional aggregation</td>
+<td>Aggregate expression by KO, EC and PFAM</td>
+<td>Salmon matrices and eggNOG annotations</td>
+<td><code>09a_aggregate_tpm_by_eggnog/</code>,
+<code>09b_aggregate_counts_by_eggnog/</code></td>
+<td>Python standard library</td>
+</tr>
+<tr>
+<td>KO to KEGG Pathway</td>
+<td>Aggregate KO counts into KEGG Pathway counts</td>
+<td>KO count matrix and eggNOG pathway annotations</td>
+<td><code>11_KO_to_KEGG_Pathway/11_COUNTS_KEGG_Pathway_matrix.tsv</code></td>
+<td>Python standard library implementation</td>
+</tr>
+<tr>
+<td>Comparative analysis</td>
+<td>Compare groups using metadata column <code>group_all</code> by
+default</td>
+<td>KO and KEGG Pathway count matrices; metadata</td>
+<td><code>10_comparative_analysis/</code></td>
+<td>ALDEx2, DESeq2, apeglm</td>
+</tr>
+<tr>
+<td>One-group overview</td>
+<td>Global RNA-seq exploratory plots</td>
+<td>CDS count matrix and metadata</td>
+<td>VST objects, PCA, top 50/top 100 heatmaps with gene labels</td>
+<td>DESeq2, pheatmap, ggplot2</td>
+</tr>
+<tr>
+<td>KO-based AMR</td>
+<td>Summarize AMR-related KO abundance</td>
+<td>KO count matrix</td>
+<td><code>14_AMR_KO/tables/AMR_activity_index.tsv</code> and summary
+tables</td>
+<td>DESeq2-based R script plus Python fallback summaries</td>
+</tr>
+<tr>
+<td>CARD/RGI</td>
+<td>Identify AMR proteins in expressed contigs</td>
+<td>TPM matrix and assemblies</td>
+<td><code>15_CARD/*/card_amr_*.txt</code></td>
+<td>seqtk, TransDecoder, RGI/CARD</td>
+</tr>
+<tr>
+<td>CARD summary</td>
+<td>Summarize CARD hits by ARO, mechanism and drug class</td>
+<td>RGI output tables</td>
+<td><code>15a_CARD_analysis/tables/</code></td>
+<td>Python standard library implementation</td>
+</tr>
+<tr>
+<td>CARD x KO integration</td>
+<td>Integrate CARD and KO-derived AMR metrics</td>
+<td>CARD summary and KO matrix</td>
+<td><code>16_integracja_CARD_KO/tables/</code></td>
+<td>Python standard library implementation</td>
+</tr>
+<tr>
+<td>Final report</td>
+<td>Aggregate QC and output links</td>
+<td>Stage output directories</td>
+<td><code>99_multiqc_all/</code>, <code>index.html</code></td>
+<td>MultiQC, Python standard library</td>
+</tr>
+</tbody>
+</table>
+<h2 id="pipeline-modules-source-scripts">Pipeline Modules / Source
+Scripts</h2>
+<p>These are the reference scripts catalogued by the app and used either
+directly through non-interactive materialized copies or as
+implementation references.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Module key</th>
+<th>Source script</th>
+<th>Role in the app</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>estimate_rrna</code></td>
+<td><code>00_estimate_rRNA_content.sh</code></td>
+<td>rRNA content estimation reference; implemented non-interactively in
+Python/Bash</td>
+</tr>
+<tr>
+<td><code>fastp</code></td>
+<td><code>01_fastp_trim_QC.sh</code></td>
+<td>fastp trimming and QC reference; implemented non-interactively</td>
+</tr>
+<tr>
+<td><code>remove_rrna</code></td>
+<td><code>02_remove_rRNA_bowtie2.sh</code></td>
+<td>rRNA depletion reference; implemented non-interactively</td>
+</tr>
+<tr>
+<td><code>rrna_stats</code></td>
+<td><code>02a_remove_rRNA_stats.sh</code></td>
+<td>rRNA removal statistics reference; implemented in Python</td>
+</tr>
+<tr>
+<td><code>megahit</code></td>
+<td><code>03a_megahit.sh</code></td>
+<td>MEGAHIT assembly reference; implemented non-interactively</td>
+</tr>
+<tr>
+<td><code>collect_contigs</code></td>
+<td><code>03b_contigs_all.sh</code></td>
+<td>Contig collection reference; implemented in Python</td>
+</tr>
+<tr>
+<td><code>quast</code></td>
+<td><code>03c_quast_metaquast.sh</code></td>
+<td>QUAST/MetaQUAST reference; implemented non-interactively</td>
+</tr>
+<tr>
+<td><code>transdecoder</code></td>
+<td><code>04_transdecoder.sh</code></td>
+<td>TransDecoder reference; implemented non-interactively</td>
+</tr>
+<tr>
+<td><code>collect_cds</code></td>
+<td><code>04a_transdecoder_all_cds.sh</code></td>
+<td>CDS/PEP collection reference; implemented in Python</td>
+</tr>
+<tr>
+<td><code>cds_stats</code></td>
+<td><code>05_compare_cds_stats.py</code></td>
+<td>CDS statistics reference; implemented in Python</td>
+</tr>
+<tr>
+<td><code>salmon</code></td>
+<td><code>06_quant_salmon.sh</code></td>
+<td>Salmon quantification reference; implemented non-interactively</td>
+</tr>
+<tr>
+<td><code>salmon_tpm</code></td>
+<td><code>07_collect_salmon_tpm.py</code></td>
+<td>Salmon matrix collection reference; implemented in Python</td>
+</tr>
+<tr>
+<td><code>eggnog</code></td>
+<td><code>08_eggnog_mapper2.sh</code></td>
+<td>eggNOG-mapper reference; implemented non-interactively</td>
+</tr>
+<tr>
+<td><code>aggregate_tpm</code></td>
+<td><code>09a_aggregate_tpm_by_eggnog.py</code></td>
+<td>TPM aggregation reference; implemented in Python</td>
+</tr>
+<tr>
+<td><code>aggregate_counts</code></td>
+<td><code>09b_aggregate_counts_by_eggnog.py</code></td>
+<td>Count aggregation reference; implemented in Python</td>
+</tr>
+<tr>
+<td><code>compare_ko_aldex2</code></td>
+<td><code>10a_DEG_KO_ALDEx2.R</code></td>
+<td>Materialized and run for KO ALDEx2 comparative analysis</td>
+</tr>
+<tr>
+<td><code>compare_ko_deseq2</code></td>
+<td><code>10b_DEG_KO_DeSeq2.R</code></td>
+<td>Materialized and run for KO DESeq2 comparative analysis</td>
+</tr>
+<tr>
+<td><code>compare_pathway_aldex2</code></td>
+<td><code>10a_DEG_KEGG_Pathway_ALDEx2.R</code></td>
+<td>Materialized and run for KEGG Pathway ALDEx2 comparative
+analysis</td>
+</tr>
+<tr>
+<td><code>compare_pathway_deseq2</code></td>
+<td><code>10b_DEG_KEGG_Pathway_DeSeq2.R</code></td>
+<td>Materialized and run for KEGG Pathway DESeq2 comparative
+analysis</td>
+</tr>
+<tr>
+<td><code>kegg_pathway</code></td>
+<td><code>11_KO_to_KEGG_Pathway.R</code></td>
+<td>KO to KEGG Pathway reference; implemented in Python</td>
+</tr>
+<tr>
+<td><code>rnaseq_overview</code></td>
+<td><code>13_RNAseq_one_group_analysis.R</code></td>
+<td>Materialized and run for DESeq2/VST/PCA/heatmaps</td>
+</tr>
+<tr>
+<td><code>amr_ko</code></td>
+<td><code>14_AMR_KO.R</code></td>
+<td>Materialized and run for KO-based AMR analysis; Python summary
+tables are also written</td>
+</tr>
+<tr>
+<td><code>card_rgi</code></td>
+<td><code>15_CARD_RGI_protein.sh</code></td>
+<td>CARD/RGI reference; implemented non-interactively</td>
+</tr>
+<tr>
+<td><code>card_analysis</code></td>
+<td><code>15a_CARD_analysis.R</code></td>
+<td>CARD summary reference; implemented in Python</td>
+</tr>
+<tr>
+<td><code>card_ko</code></td>
+<td><code>16_integracja_CARD_KO.R</code></td>
+<td>CARD x KO integration reference; implemented in Python</td>
+</tr>
+</tbody>
+</table>
+<h2 id="multiqc-modules">MultiQC Modules</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>MultiQC report</th>
+<th>Input directories</th>
+<th>Modules expected</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>fastp report</td>
+<td><code>01_fastp_trim_QC/reports</code></td>
+<td>fastp</td>
+</tr>
+<tr>
+<td>QUAST report</td>
+<td><code>03c_quast_metaquast</code></td>
+<td>QUAST</td>
+</tr>
+<tr>
+<td>final report</td>
+<td>fastp reports, QUAST directory, Salmon directories, CARD
+directories</td>
+<td>fastp, QUAST, Salmon; additional detectable modules if present</td>
+</tr>
+</tbody>
+</table>
+<h2 id="computational-environments">Computational Environments</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Environment</th>
+<th>Path</th>
+<th>Used for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>System Python</td>
+<td><code>python3</code></td>
+<td>Pipeline app, file parsing, matrix aggregation, summaries, local
+HTML server</td>
+</tr>
+<tr>
+<td>System R</td>
+<td><code>/usr/bin/Rscript</code></td>
+<td>R analyses using packages installed under <code>/data/R</code>;
+selected to match R 4.5.x package builds</td>
+</tr>
+<tr>
+<td>QC / assembly env</td>
+<td><code>/user_conda_envs_localization/metagenomics_base</code></td>
+<td>fastp, MultiQC, Bowtie2, MEGAHIT</td>
+</tr>
+<tr>
+<td>Metatranscriptomics env</td>
+<td><code>/user_conda_envs_localization/metatrascriptomics_base</code></td>
+<td>TransDecoder, Salmon</td>
+</tr>
+<tr>
+<td>QUAST env</td>
+<td><code>/user_conda_envs_localization/quast_base</code></td>
+<td>QUAST / MetaQUAST</td>
+</tr>
+<tr>
+<td>eggNOG env</td>
+<td><code>/user_conda_envs_localization/eggnog_mapper_v2</code></td>
+<td>eggNOG-mapper, DIAMOND, MMseqs2</td>
+</tr>
+<tr>
+<td>CARD env</td>
+<td><code>/user_conda_envs_localization/card</code></td>
+<td>RGI, CARD-related searches, seqtk</td>
+</tr>
+</tbody>
+</table>
+<h2 id="command-line-tools-and-versions">Command-line Tools and
+Versions</h2>
+<table>
+<colgroup>
+<col style="width: 30%" />
+<col style="width: 40%" />
+<col style="width: 30%" />
+</colgroup>
+<thead>
+<tr>
+<th>Tool</th>
+<th style="text-align: right;">Version observed locally</th>
+<th>Environment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Python</td>
+<td style="text-align: right;">3.10.12 for the app runtime</td>
+<td>system</td>
+</tr>
+<tr>
+<td>R</td>
+<td style="text-align: right;">4.5.3</td>
+<td><code>/usr/bin/Rscript</code></td>
+</tr>
+<tr>
+<td>fastp</td>
+<td style="text-align: right;">1.0.1</td>
+<td><code>metagenomics_base</code></td>
+</tr>
+<tr>
+<td>MultiQC</td>
+<td style="text-align: right;">1.34</td>
+<td><code>metagenomics_base</code></td>
+</tr>
+<tr>
+<td>Bowtie2</td>
+<td style="text-align: right;">2.5.4</td>
+<td><code>metagenomics_base</code></td>
+</tr>
+<tr>
+<td>MEGAHIT</td>
+<td style="text-align: right;">1.2.9</td>
+<td><code>metagenomics_base</code></td>
+</tr>
+<tr>
+<td>QUAST / MetaQUAST</td>
+<td style="text-align: right;">5.3.0</td>
+<td><code>quast_base</code></td>
+</tr>
+<tr>
+<td>TransDecoder</td>
+<td style="text-align: right;">5.7.1</td>
+<td><code>metatrascriptomics_base</code></td>
+</tr>
+<tr>
+<td>Salmon</td>
+<td style="text-align: right;">1.10.3</td>
+<td><code>metatrascriptomics_base</code></td>
+</tr>
+<tr>
+<td>eggNOG-mapper</td>
+<td style="text-align: right;">2.1.13</td>
+<td><code>eggnog_mapper_v2</code></td>
+</tr>
+<tr>
+<td>DIAMOND</td>
+<td style="text-align: right;">2.0.15 for eggNOG-mapper; 2.1.21 in CARD
+env</td>
+<td><code>eggnog_mapper_v2</code>, <code>card</code></td>
+</tr>
+<tr>
+<td>MMseqs2</td>
+<td style="text-align: right;">16.747c6</td>
+<td><code>eggnog_mapper_v2</code></td>
+</tr>
+<tr>
+<td>RGI</td>
+<td style="text-align: right;">3.2.1</td>
+<td><code>card</code></td>
+</tr>
+<tr>
+<td>BLAST</td>
+<td style="text-align: right;">2.17.0</td>
+<td><code>card</code></td>
+</tr>
+<tr>
+<td>seqtk</td>
+<td style="text-align: right;">available, version not reported by local
+binary</td>
+<td><code>card</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="r-packages">R Packages</h2>
+<table>
+<colgroup>
+<col style="width: 30%" />
+<col style="width: 40%" />
+<col style="width: 30%" />
+</colgroup>
+<thead>
+<tr>
+<th>R package</th>
+<th style="text-align: right;">Version observed locally</th>
+<th>Used for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ALDEx2</td>
+<td style="text-align: right;">1.40.0</td>
+<td>Group-wise compositional differential abundance</td>
+</tr>
+<tr>
+<td>DESeq2</td>
+<td style="text-align: right;">1.48.2</td>
+<td>Count normalization, VST, differential expression</td>
+</tr>
+<tr>
+<td>apeglm</td>
+<td style="text-align: right;">1.30.0</td>
+<td>DESeq2 log-fold-change shrinkage</td>
+</tr>
+<tr>
+<td>tidyverse</td>
+<td style="text-align: right;">2.0.0</td>
+<td>R data import, transformation and plotting in source scripts</td>
+</tr>
+<tr>
+<td>ggplot2</td>
+<td style="text-align: right;">4.0.0</td>
+<td>PCA, volcano plots, summary plots</td>
+</tr>
+<tr>
+<td>dplyr</td>
+<td style="text-align: right;">1.1.4</td>
+<td>Data manipulation</td>
+</tr>
+<tr>
+<td>readr</td>
+<td style="text-align: right;">2.1.5</td>
+<td>TSV/CSV input and output</td>
+</tr>
+<tr>
+<td>stringr</td>
+<td style="text-align: right;">1.5.2</td>
+<td>String handling</td>
+</tr>
+<tr>
+<td>matrixStats</td>
+<td style="text-align: right;">1.5.0</td>
+<td>Row-wise variance and summary statistics</td>
+</tr>
+<tr>
+<td>pheatmap</td>
+<td style="text-align: right;">1.0.13</td>
+<td>Heatmaps</td>
+</tr>
+<tr>
+<td>janitor</td>
+<td style="text-align: right;">2.2.1</td>
+<td>Reference CARD scripts; column-name cleaning</td>
+</tr>
+<tr>
+<td>FactoMineR</td>
+<td style="text-align: right;">2.13</td>
+<td>Reference CARD scripts; PCA</td>
+</tr>
+<tr>
+<td>factoextra</td>
+<td style="text-align: right;">1.0.7</td>
+<td>Reference CARD scripts; PCA visualization</td>
+</tr>
+<tr>
+<td>Biobase</td>
+<td style="text-align: right;">2.68.0</td>
+<td>Bioconductor dependency</td>
+</tr>
+<tr>
+<td>S4Vectors</td>
+<td style="text-align: right;">0.46.0</td>
+<td>Bioconductor dependency</td>
+</tr>
+<tr>
+<td>SummarizedExperiment</td>
+<td style="text-align: right;">1.38.1</td>
+<td>Bioconductor dependency</td>
+</tr>
+</tbody>
+</table>
+<h2 id="databases-and-reference-resources">Databases and Reference
+Resources</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Resource</th>
+<th>Local path / source</th>
+<th>Used for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SILVA 138.2 rRNA Bowtie2 index</td>
+<td><code>/user_bases_localization/metaTP/SILVA_138_2_rRNA</code></td>
+<td>rRNA estimation and depletion</td>
+</tr>
+<tr>
+<td>eggNOG data directory</td>
+<td><code>/user_bases_localization/eggnog</code></td>
+<td>Functional annotation by eggNOG-mapper</td>
+</tr>
+<tr>
+<td>CARD / RGI database</td>
+<td>RGI default database in
+<code>/user_conda_envs_localization/card</code></td>
+<td>AMR protein identification</td>
+</tr>
+</tbody>
+</table>
+<h2 id="key-parameters-currently-encoded-in-the-app">Key Parameters
+Currently Encoded in the App</h2>
+<table>
+<colgroup>
+<col style="width: 30%" />
+<col style="width: 40%" />
+<col style="width: 30%" />
+</colgroup>
+<thead>
+<tr>
+<th>Parameter</th>
+<th style="text-align: right;">Default/current value</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>fastp mode</td>
+<td style="text-align: right;">adapters + cut_front/cut_tail + Phred/min
+length</td>
+<td>User configurable</td>
+</tr>
+<tr>
+<td>fastp Phred threshold</td>
+<td style="text-align: right;">20</td>
+<td>User configurable</td>
+</tr>
+<tr>
+<td>fastp minimum read length</td>
+<td style="text-align: right;">50 bp</td>
+<td>User configurable</td>
+</tr>
+<tr>
+<td>rRNA Bowtie2 mode</td>
+<td
+style="text-align: right;"><code>--end-to-end --very-sensitive -L 31 -N 0 --score-min L,0,-0.6</code></td>
+<td>Used for both estimation and depletion</td>
+</tr>
+<tr>
+<td>MEGAHIT k-list</td>
+<td style="text-align: right;"><code>21,41,61,81,101,121</code></td>
+<td>User configurable</td>
+</tr>
+<tr>
+<td>MEGAHIT minimum contig length</td>
+<td style="text-align: right;">300 bp</td>
+<td>User configurable</td>
+</tr>
+<tr>
+<td>QUAST minimum contig length</td>
+<td style="text-align: right;">200 bp</td>
+<td>QUAST/MetaQUAST report</td>
+</tr>
+<tr>
+<td>Salmon library type</td>
+<td style="text-align: right;"><code>-l A</code></td>
+<td>Automatic library type detection</td>
+</tr>
+<tr>
+<td>TPM threshold for expressed contigs/CARD</td>
+<td style="text-align: right;">1.0</td>
+<td>User configurable</td>
+</tr>
+<tr>
+<td>Comparative grouping column</td>
+<td style="text-align: right;"><code>group_all</code></td>
+<td>Metadata column used for ALDEx2 and DESeq2 grouping</td>
+</tr>
+<tr>
+<td>RNA-seq overview filtering</td>
+<td style="text-align: right;">count &gt;= 10 in at least 2 samples</td>
+<td>Inherited from source R script</td>
+</tr>
+<tr>
+<td>DESeq2 size factors for sparse matrices</td>
+<td style="text-align: right;"><code>type = "poscounts"</code> /
+<code>sfType = "poscounts"</code></td>
+<td>Added for sparse metatranscriptomic count matrices</td>
+</tr>
+<tr>
+<td>RNA-seq heatmaps</td>
+<td style="text-align: right;">top 50 and top 100 variable genes</td>
+<td>Gene names shown; gene clustering disabled; sample clustering
+enabled</td>
+</tr>
+<tr>
+<td>CARD/RGI cutoff</td>
+<td style="text-align: right;">loose RGI mode, summary keeps Strict and
+Loose by default</td>
+<td>User configurable summary cutoffs</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>
