@@ -37,50 +37,46 @@ from urllib.parse import parse_qs, urlparse
 
 APP_DIR = Path(__file__).resolve().parent
 
-DEFAULT_ENVS = {
-    "qc": os.environ.get("METAREX_ENV_QC", ""),
-    "meta": os.environ.get("METAREX_ENV_META", ""),
-    "quast": os.environ.get("METAREX_ENV_QUAST", ""),
-    "eggnog": os.environ.get("METAREX_ENV_EGGNOG", ""),
-    "card": os.environ.get("METAREX_ENV_CARD", ""),
-    "r": os.environ.get("METAREX_ENV_R", ""),
+ENVS = {
+    "qc": "/.../metagenomics_base",
+    "meta": "/.../metatrascriptomics_base",
+    "quast": "/.../nanopore_assembly",
+    "eggnog": "/.../eggnog_mapper_v2",
+    "card": "/.../card",
+    "r": "/.../metatrascriptomics_base",
 }
 
-DEFAULT_DBS = {
-    "rrna_bowtie2": os.environ.get("METAREX_RRNA_INDEX", ""),
-    "eggnog_data": os.environ.get("METAREX_EGGNOG_DATA", ""),
+DBS = {
+    "rrna_bowtie2": "/.../SILVA_138_2_rRNA",
+    "eggnog_data": "/.../eggnog",
 }
 
-_SCRIPT_DIR = APP_DIR / "scripts"
 SOURCE_SCRIPTS = {
-    name: str(_SCRIPT_DIR / filename)
-    for name, filename in {
-        "estimate_rrna": "00_estimate_rRNA_content.sh",
-        "fastp": "01_fastp_trim_QC.sh",
-        "remove_rrna": "02_remove_rRNA_bowtie2.sh",
-        "rrna_stats": "02a_remove_rRNA_stats.sh",
-        "megahit": "03a_megahit.sh",
-        "collect_contigs": "03b_contigs_all.sh",
-        "quast": "03c_quast_metaquast.sh",
-        "transdecoder": "04_transdecoder.sh",
-        "collect_cds": "04a_transdecoder_all_cds.sh",
-        "cds_stats": "05_compare_cds_stats.py",
-        "salmon": "06_quant_salmon.sh",
-        "salmon_tpm": "07_collect_salmon_tpm.py",
-        "eggnog": "08_eggnog_mapper2.sh",
-        "aggregate_tpm": "09a_aggregate_tpm_by_eggnog.py",
-        "aggregate_counts": "09b_aggregate_counts_by_eggnog.py",
-        "compare_ko_aldex2": "10a_DEG_KO_ALDEx2.R",
-        "compare_ko_deseq2": "10b_DEG_KO_DeSeq2.R",
-        "compare_pathway_aldex2": "10a_DEG_KEGG_Pathway_ALDEx2.R",
-        "compare_pathway_deseq2": "10b_DEG_KEGG_Pathway_DeSeq2.R",
-        "kegg_pathway": "11_KO_to_KEGG_Pathway.R",
-        "rnaseq_overview": "13_RNAseq_one_group_analysis.R",
-        "amr_ko": "14_AMR_KO.R",
-        "card_rgi": "15_CARD_RGI_protein.sh",
-        "card_analysis": "15a_CARD_analysis.R",
-        "card_ko": "16_integracja_CARD_KO.R",
-    }.items()
+    "estimate_rrna": "/.../00_estimate_rRNA_content.sh",
+    "fastp": "/.../01_fastp_trim_QC.sh",
+    "remove_rrna": "/.../02_remove_rRNA_bowtie2.sh",
+    "rrna_stats": "/.../02a_remove_rRNA_stats.sh",
+    "megahit": "/.../03a_megahit.sh",
+    "collect_contigs": "/.../03b_contigs_all.sh",
+    "quast": "/.../03c_quast_metaquast.sh",
+    "transdecoder": "/.../04_transdecoder.sh",
+    "collect_cds": "/.../04a_transdecoder_all_cds.sh",
+    "cds_stats": "/.../05_compare_cds_stats.py",
+    "salmon": "/.../06_quant_salmon.sh",
+    "salmon_tpm": "/.../07_collect_salmon_tpm.py",
+    "eggnog": "/.../08_eggnog_mapper2.sh",
+    "aggregate_tpm": "/.../09a_aggregate_tpm_by_eggnog.py",
+    "aggregate_counts": "/.../09b_aggregate_counts_by_eggnog.py",
+    "compare_ko_aldex2": "/.../10a_DEG_KO_ALDEx2.R",
+    "compare_ko_deseq2": "/.../10b_DEG_KO_DeSeq2.R",
+    "compare_pathway_aldex2": "/.../10a_DEG_KEGG_Pathway_ALDEx2.R",
+    "compare_pathway_deseq2": "/.../10b_DEG_KEGG_Pathway_DeSeq2.R",
+    "kegg_pathway": "/.../11_KO_to_KEGG_Pathway.R",
+    "rnaseq_overview": "/.../13_RNAseq_one_group_analysis.R",
+    "amr_ko": "/.../14_AMR_KO.R",
+    "card_rgi": "/.../15_CARD_RGI_protein.sh",
+    "card_analysis": "/.../15a_CARD_analysis.R",
+    "card_ko": "/.../16_integracja_CARD_KO.R",
 }
 
 FASTQ_RE = re.compile(r"\.(fastq|fq)(\.gz)?$", re.IGNORECASE)
@@ -581,17 +577,25 @@ def spearman(x: list[float], y: list[float]) -> float:
 class Pipeline:
     def __init__(self, config: dict[str, Any]):
         self.config = config
+        self.conda_bin = str(config.get("conda_bin", "conda"))
+        self.envs = {**ENVS, **{str(k): str(v) for k, v in config.get("envs", {}).items()}}
+        self.dbs = {**DBS}
+        if config.get("rrna_index"):
+            self.dbs["rrna_bowtie2"] = str(config["rrna_index"])
+        if config.get("eggnog_data_dir"):
+            self.dbs["eggnog_data"] = str(config["eggnog_data_dir"])
+        script_dir = config.get("source_scripts_dir")
+        if not script_dir:
+            for candidate in (APP_DIR / "scripts", APP_DIR / "translate"):
+                if candidate.is_dir():
+                    script_dir = str(candidate)
+                    break
+        self.source_scripts = dict(SOURCE_SCRIPTS)
+        if script_dir:
+            script_root = Path(str(script_dir)).expanduser().resolve()
+            for name, default_path in SOURCE_SCRIPTS.items():
+                self.source_scripts[name] = str(script_root / Path(default_path).name)
         self.outdir = Path(config["output_dir"]).expanduser().resolve()
-        self.envs = {**DEFAULT_ENVS, **{
-            str(key): str(value)
-            for key, value in config.get("envs", {}).items()
-            if str(value).strip()
-        }}
-        self.dbs = {**DEFAULT_DBS, **{
-            str(key): str(value)
-            for key, value in config.get("databases", {}).items()
-            if str(value).strip()
-        }}
         mkdir(self.outdir)
         self.log_path = self.outdir / "pipeline.log"
         self.state_dir = self.outdir / ".pipeline_state"
@@ -657,13 +661,8 @@ class Pipeline:
         return proc.returncode
 
     def run_bash(self, env_key: str, script: str, label: str, cwd: Path | None = None, allow_fail: bool = False) -> int:
-        env = self.envs.get(env_key, "").strip()
-        if not env:
-            raise RuntimeError(
-                f"Conda environment '{env_key}' is not configured. "
-                f"Set envs.{env_key} in the JSON config or METAREX_ENV_{env_key.upper()}."
-            )
-        cmd = ["conda", "run", "-p", env, "bash", "-lc", f"set -euo pipefail\n{script}"]
+        env = self.envs[env_key]
+        cmd = [self.conda_bin, "run", "-p", env, "bash", "-lc", f"set -euo pipefail\n{script}"]
         return self.run_cmd(cmd, label, cwd=cwd, allow_fail=allow_fail)
 
     def run_interactive_script(
@@ -674,13 +673,7 @@ class Pipeline:
         label: str,
         allow_fail: bool = False,
     ) -> int:
-        env = self.envs.get(env_key, "").strip()
-        if not env:
-            raise RuntimeError(
-                f"Conda environment '{env_key}' is not configured. "
-                f"Set envs.{env_key} in the JSON config or METAREX_ENV_{env_key.upper()}."
-            )
-        cmd = ["conda", "run", "-p", env, *cmd_tail]
+        cmd = [self.conda_bin, "run", "-p", self.envs[env_key], *cmd_tail]
         return self.run_cmd(cmd, label, allow_fail=allow_fail, input_text="\n".join(input_lines) + "\n")
 
     def rscript_bin(self) -> str:
@@ -728,11 +721,15 @@ class Pipeline:
                 "show_rownames = TRUE,\n    cluster_rows = FALSE,",
                 "show_rownames = TRUE,\n    fontsize_row = ifelse(ntop <= 50, 7, 5),\n    cluster_rows = FALSE,",
             )
-            replacement_calls = [f'make_heatmap({size}, "Heatmap_vst_top{size}")' for size in heatmap_sizes]
+            two_argument_calls = bool(re.search(r"make_heatmap\(\s*\d+\s*,", text))
+            if two_argument_calls:
+                replacement_calls = [f'make_heatmap({size}, "Heatmap_vst_top{size}")' for size in heatmap_sizes]
+            else:
+                replacement_calls = [f"make_heatmap({size})" for size in heatmap_sizes]
             updated_lines = []
             replaced = 0
             for line in text.splitlines():
-                if re.match(r'\s*make_heatmap\(\s*\d+\s*,\s*"Heatmap_vst_top\d+"\s*\)\s*$', line):
+                if re.match(r'\s*make_heatmap\(\s*\d+(?:\s*,\s*"[^"]+")?\s*\)\s*$', line):
                     if replaced == 0:
                         updated_lines.extend(replacement_calls)
                     replaced += 1
@@ -773,7 +770,7 @@ class Pipeline:
 
     def run(self) -> None:
         self.log("RNA-seq AMR pipeline started")
-        self.log("Source script catalogue: " + json.dumps(SOURCE_SCRIPTS, sort_keys=True))
+        self.log("Source script catalogue: " + json.dumps(self.source_scripts, sort_keys=True))
         input_dir = Path(self.config["input_dir"]).expanduser().resolve()
         recursive = bool(self.config.get("recursive", True))
         planned_steps = self.planned_step_names()
@@ -959,10 +956,15 @@ class Pipeline:
                 continue
             out_r1 = out / f"{sample.sample}_R1.test.fastq.gz"
             out_r2 = out / f"{sample.sample}_R2.test.fastq.gz"
-            if out_r1.exists() and out_r2.exists() and not bool(self.config.get("force", False)):
+            # Reuse an existing test subset even when selected pipeline stages
+            # are forced to rerun. Delete 00_test_run_downsampled explicitly
+            # when a fresh subset is required.
+            if out_r1.exists() and out_r2.exists():
                 written = "existing"
+                self.log(f"REUSE existing test subset: {sample.sample}")
             else:
                 written = str(write_random_paired_fastq_subset(sample.r1, sample.r2, out_r1, out_r2, read_count, seed + idx))
+                self.log(f"CREATED test subset: {sample.sample}, reads={written}")
             test_samples.append(Sample(sample=sample.sample, r1=out_r1, r2=out_r2))
             rows.append([sample.sample, sample.r1, sample.r2, out_r1, out_r2, written])
         with (out / "manifest.tsv").open("w", newline="") as handle:
@@ -1040,9 +1042,7 @@ class Pipeline:
         return meta_out
 
     def estimate_rrna_content(self) -> None:
-        idx = self.config.get("rrna_index") or self.dbs["rrna_bowtie2"]
-        if not idx:
-            raise RuntimeError("rRNA Bowtie2 index is not configured; set rrna_index or databases.rrna_bowtie2")
+        idx = self.config.get("rrna_index", self.dbs["rrna_bowtie2"])
         if not bowtie2_index_exists(idx):
             raise RuntimeError(f"Bowtie2 rRNA index not found for prefix: {idx}")
         out = self.outdir / "00_rRNA_content"
@@ -1132,9 +1132,7 @@ class Pipeline:
         return self.clean_reads_for_sample(sample)
 
     def remove_rrna(self) -> None:
-        idx = self.config.get("rrna_index") or self.dbs["rrna_bowtie2"]
-        if not idx:
-            raise RuntimeError("rRNA Bowtie2 index is not configured; set rrna_index or databases.rrna_bowtie2")
+        idx = self.config.get("rrna_index", self.dbs["rrna_bowtie2"])
         if not bowtie2_index_exists(idx):
             raise RuntimeError(f"Bowtie2 rRNA index not found for prefix: {idx}")
         mkdir(self.rrna_dir)
@@ -1374,9 +1372,7 @@ class Pipeline:
             for pep in pep_files:
                 with pep.open(errors="replace") as inp:
                     shutil.copyfileobj(inp, out)
-        data_dir = self.config.get("eggnog_data_dir") or self.dbs["eggnog_data"]
-        if not data_dir:
-            raise RuntimeError("eggNOG data directory is not configured; set eggnog_data_dir or databases.eggnog_data")
+        data_dir = self.config.get("eggnog_data_dir", self.dbs["eggnog_data"])
         threads = int(self.config.get("threads", 16))
         script = (
             f"export EGGNOG_DATA_DIR={q(data_dir)}\n"
@@ -1540,7 +1536,7 @@ class Pipeline:
         ]
 
         for script_key, out_dir, assignments, expected, label in jobs:
-            script = Path(SOURCE_SCRIPTS[script_key])
+            script = Path(self.source_scripts[script_key])
             if not script.exists():
                 raise RuntimeError(f"Comparative source script missing: {script}")
             mkdir(out_dir)
@@ -1550,7 +1546,7 @@ class Pipeline:
                 raise RuntimeError(f"{label} finished but expected output is missing: {expected}")
 
     def rnaseq_overview(self) -> None:
-        script = Path(SOURCE_SCRIPTS["rnaseq_overview"])
+        script = Path(self.source_scripts["rnaseq_overview"])
         if not script.exists():
             raise RuntimeError(f"RNA-seq overview source script missing: {script}")
         configured_count_file = str(self.config.get("rnaseq_count_matrix") or "").strip()
@@ -1579,26 +1575,57 @@ class Pipeline:
             raise RuntimeError("Samples missing from RNA-seq overview count matrix: " + ", ".join(missing_in_counts))
         heatmap_sizes = parse_positive_int_list(self.config.get("rnaseq_heatmap_top", "50,100"), [50, 100])
         mkdir(self.rnaseq_dir)
-        runnable_script = self.materialize_r_script(
-            script,
-            {
-                "count_file": count_file,
-                "meta_file": meta_file,
-                "outdir": self.rnaseq_dir,
-            },
-            "13_RNAseq_one_group_analysis",
-            heatmap_sizes=heatmap_sizes,
-        )
-        self.run_r_script(
-            runnable_script,
-            "RNA-seq one-group R overview",
-        )
-        expected_heatmaps = [self.rnaseq_dir / "figures" / f"Heatmap_vst_top{size}.pdf" for size in heatmap_sizes]
-        expected = [
-            self.rnaseq_dir / "tables" / "PCA_coordinates.tsv",
-            self.rnaseq_dir / "tables" / "Gene_summary_mean_sd_cv.tsv",
-            self.rnaseq_dir / "figures" / "PCA_vst.pdf",
-        ] + expected_heatmaps
+        script_text = script.read_text(encoding="utf-8")
+        ko_overview = "PCA_coordinates_KO.tsv" in script_text
+        if "commandArgs(trailingOnly = TRUE)" in script_text:
+            self.run_cmd(
+                [
+                    self.rscript_bin(),
+                    str(script),
+                    str(count_file),
+                    str(meta_file),
+                    str(self.rnaseq_dir),
+                ],
+                "RNA-seq one-group R overview",
+            )
+        else:
+            runnable_script = self.materialize_r_script(
+                script,
+                {
+                    "count_file": count_file,
+                    "meta_file": meta_file,
+                    "outdir": self.rnaseq_dir,
+                },
+                "13_RNAseq_one_group_analysis",
+                heatmap_sizes=heatmap_sizes,
+            )
+            self.run_r_script(
+                runnable_script,
+                "RNA-seq one-group R overview",
+            )
+        if ko_overview:
+            ko_summary = self.rnaseq_dir / "tables" / "KO_summary_mean_sd_variance.tsv"
+            retained_ko = 0
+            if ko_summary.exists():
+                with ko_summary.open(encoding="utf-8", errors="replace") as handle:
+                    retained_ko = max(0, sum(1 for _ in handle) - 1)
+            actual_heatmap_sizes = sorted({min(size, retained_ko) for size in heatmap_sizes if retained_ko > 0})
+            expected_heatmaps = [
+                self.rnaseq_dir / "figures" / f"Heatmap_vst_KO_top{size}.pdf"
+                for size in actual_heatmap_sizes
+            ]
+            expected = [
+                self.rnaseq_dir / "tables" / "PCA_coordinates_KO.tsv",
+                self.rnaseq_dir / "tables" / "KO_summary_mean_sd_variance.tsv",
+                self.rnaseq_dir / "figures" / "PCA_vst_KO.pdf",
+            ] + expected_heatmaps
+        else:
+            expected_heatmaps = [self.rnaseq_dir / "figures" / f"Heatmap_vst_top{size}.pdf" for size in heatmap_sizes]
+            expected = [
+                self.rnaseq_dir / "tables" / "PCA_coordinates.tsv",
+                self.rnaseq_dir / "tables" / "Gene_summary_mean_sd_cv.tsv",
+                self.rnaseq_dir / "figures" / "PCA_vst.pdf",
+            ] + expected_heatmaps
         missing_outputs = [str(path) for path in expected if not path.exists()]
         if missing_outputs:
             raise RuntimeError("RNA-seq overview finished but expected outputs are missing: " + ", ".join(missing_outputs))
@@ -1616,7 +1643,7 @@ class Pipeline:
             raise RuntimeError(f"KO count matrix missing: {ko_matrix}")
         mkdir(self.amr_ko_dir / "tables")
         mkdir(self.amr_ko_dir / "figures")
-        script = Path(SOURCE_SCRIPTS["amr_ko"])
+        script = Path(self.source_scripts["amr_ko"])
         runnable_script = self.materialize_r_script(
             script,
             {
@@ -1956,7 +1983,7 @@ class Pipeline:
             )
 
         source_rows = []
-        for name, path in SOURCE_SCRIPTS.items():
+        for name, path in self.source_scripts.items():
             source_rows.append(f"<tr><td>{html.escape(name)}</td><td>{html.escape(path)}</td></tr>")
 
         cfg = html.escape(json.dumps(self.config, indent=2, ensure_ascii=True))
@@ -2300,10 +2327,10 @@ pre {
         <legend>Sciezki</legend>
         <div class="field-grid one">
           <label class="field">Input FASTQ directory
-            <input type="text" name="input_dir" value="./input_fastq">
+            <input type="text" name="input_dir" value="/data/projekty/Metatranskryptomika">
           </label>
           <label class="field">Output directory
-            <input type="text" name="output_dir" value="./runs/run1">
+            <input type="text" name="output_dir" value="/data/software/codex/pipline_rnaseq_amr/runs/run1">
           </label>
           <label class="field">Metadata TSV/CSV
             <input type="text" name="metadata_file" value="">
@@ -2363,10 +2390,10 @@ pre {
             <input type="number" name="salmon_threads" value="8" min="1">
           </label>
           <label class="field">Bowtie2 rRNA index
-            <input type="text" name="rrna_index" value="">
+            <input type="text" name="rrna_index" value="/data/bazy/metaTP/SILVA_138_2_rRNA">
           </label>
           <label class="field">eggNOG data directory
-            <input type="text" name="eggnog_data_dir" value="">
+            <input type="text" name="eggnog_data_dir" value="/data/bazy/eggnog">
           </label>
         </div>
       </fieldset>
@@ -2758,8 +2785,8 @@ def form_to_config(form: dict[str, list[str]]) -> dict[str, Any]:
         "test_seed": int(one("test_seed", "7") or "7"),
         "threads": int(one("threads", "16") or "16"),
         "salmon_threads": int(one("salmon_threads", "8") or "8"),
-        "rrna_index": one("rrna_index", DEFAULT_DBS["rrna_bowtie2"]),
-        "eggnog_data_dir": one("eggnog_data_dir", DEFAULT_DBS["eggnog_data"]),
+        "rrna_index": one("rrna_index", DBS["rrna_bowtie2"]),
+        "eggnog_data_dir": one("eggnog_data_dir", DBS["eggnog_data"]),
         "fastp_strategy": one("fastp_strategy", "full"),
         "fastp_phred": int(one("fastp_phred", "20") or "20"),
         "fastp_min_len": int(one("fastp_min_len", "50") or "50"),
