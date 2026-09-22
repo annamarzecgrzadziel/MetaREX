@@ -584,10 +584,20 @@ if (
 } else {
   
  
-  vsd <- vst(
-    dds,
-    blind = FALSE
-  )
+  if (nrow(dds) < 1000) {
+    cat(
+      " Fewer than 1000 KO remain; using varianceStabilizingTransformation directly.\n"
+    )
+    vsd <- varianceStabilizingTransformation(
+      dds,
+      blind = FALSE
+    )
+  } else {
+    vsd <- vst(
+      dds,
+      blind = FALSE
+    )
+  }
   
   saveRDS(
     vsd,

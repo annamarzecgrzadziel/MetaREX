@@ -57,13 +57,45 @@ if (!setequal(colnames(counts_mat), meta_df$sample)) {
 meta_df <- meta_df[match(colnames(counts_mat), meta_df$sample), , drop = FALSE]
 rownames(meta_df) <- meta_df$sample
 
-keep <- rowSums(counts_mat >= 10) >= 2
+min_samples <- if (ncol(counts_mat) < 4) 1 else 2
+
+keep <- rowSums(counts_mat >= 10) >= min_samples
 counts_filt <- counts_mat[keep, , drop = FALSE]
+
+if (nrow(counts_filt) < 2 && ncol(counts_mat) < 4) {
+  message(
+    "Fewer than two KO pass the count >= 10 filter; ",
+    "using non-zero features for this small exploratory dataset."
+  )
+  counts_filt <- counts_mat[
+    rowSums(counts_mat) > 0,
+    ,
+    drop = FALSE
+  ]
+}
+
+if (nrow(counts_filt) < 2) {
+  message(
+    "The strict filter retained fewer than two KO; using total count >= 10 ",
+    "and presence in at least two samples."
+  )
+  keep_relaxed <- rowSums(counts_mat) >= 10 & rowSums(counts_mat > 0) >= 2
+  counts_filt <- counts_mat[keep_relaxed, , drop = FALSE]
+}
+
 if (nrow(counts_filt) < 2) stop("Fewer than two KO features remain after filtering.")
 
 dds <- DESeqDataSetFromMatrix(countData = counts_filt, colData = meta_df, design = ~ 1)
 dds <- estimateSizeFactors(dds, type = "poscounts")
-vsd <- vst(dds, blind = TRUE)
+if (nrow(dds) < 1000) {
+  message(
+    "Fewer than 1000 KO remain; using ",
+    "varianceStabilizingTransformation directly."
+  )
+  vsd <- varianceStabilizingTransformation(dds, blind = TRUE)
+} else {
+  vsd <- vst(dds, blind = TRUE)
+}
 mat <- assay(vsd)
 
 saveRDS(dds, file.path(outdir, "r_objects", "dds_KO.rds"))
@@ -114,7 +146,8 @@ writeLines(c(
   paste("metadata_file", normalizePath(meta_file), sep = "\t"),
   paste("n_input_KO", nrow(counts_mat), sep = "\t"),
   paste("n_retained_KO", nrow(counts_filt), sep = "\t"),
-  "filter\tcount >= 10 in at least 2 samples",
+  paste("filter\tcount >= 10 in at least", min_samples,
+        "samples; non-zero fallback for small datasets"),
   "transformation\tDESeq2 vst(blind=TRUE)",
   "heatmap_row_clustering\tFALSE",
   "heatmap_column_clustering\tTRUE"
