@@ -1,112 +1,93 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -euo pipefail
 
-echo "CARD pipeline PER SAMPLE started"
+echo "CARD/RGI analysis of all assembled proteins"
 
 echo "Activating conda environment: card"
 eval "$(conda shell.bash hook)"
 conda activate card
 
-if ! command -v rgi &> /dev/null; then
-  echo " RGI not found in PATH"
-  exit 1
+if ! command -v rgi >/dev/null 2>&1; then
+    echo "ERROR: rgi was not found in the card environment." >&2
+    exit 1
 fi
 
-read -rp " Enter the salmon_TPM_all.tsv file: " TPM_FILE
-read -rp " Enter the directory containing per-sample assemblies (03_assembly_megahit): " ASM_DIR
-read -rp " Enter the CARD output directory [15_CARD]: " OUTDIR
-read -rp " Number of threads [32]: " THREADS
+read -rp "Directory containing per-sample assemblies (03_assembly_megahit): " ASM_DIR
+read -rp "CARD output directory [15_CARD]: " OUTDIR
+read -rp "Number of threads [16]: " THREADS
 
-OUTDIR=${OUTDIR:-15_CARD}
-THREADS=${THREADS:-32}
+OUTDIR=${OUTDIR:-15_CARD_all_proteins}
+THREADS=${THREADS:-16}
 
-mkdir -p "${OUTDIR}"
+if [[ ! -d "$ASM_DIR" ]]; then
+    echo "ERROR: Assembly directory does not exist: $ASM_DIR" >&2
+    exit 1
+fi
 
-SAMPLES=$(head -n 1 "${TPM_FILE}" | tr '\t' '\n' | tail -n +2)
+mkdir -p "$OUTDIR"
+ASM_DIR=$(realpath "$ASM_DIR")
+OUTDIR=$(realpath "$OUTDIR")
 
-echo "${SAMPLES}"
+mapfile -t CONTIG_FILES < <(
+    find "$ASM_DIR" -mindepth 2 -maxdepth 2 -type f -name "final.contigs.fa" -print | sort
+)
 
-for SAMPLE in ${SAMPLES}; do
+if [[ "${#CONTIG_FILES[@]}" -eq 0 ]]; then
+    echo "ERROR: No per-sample final.contigs.fa files were found under $ASM_DIR" >&2
+    exit 1
+fi
 
-  echo "================================================="
-  echo " Processing sample: ${SAMPLE}"
-  echo "================================================="
+printf 'sample\tassembly\tprotein_file\trgi_output\n' > "$OUTDIR/CARD_manifest.tsv"
 
-  SAMPLE_OUT="${OUTDIR}/${SAMPLE}"
-  mkdir -p "${SAMPLE_OUT}"
+for ASM_FASTA in "${CONTIG_FILES[@]}"; do
+    SAMPLE=$(basename "$(dirname "$ASM_FASTA")")
+    SAMPLE_OUT="$OUTDIR/$SAMPLE"
+    mkdir -p "$SAMPLE_OUT"
 
-  echo " Filtering transcripts with TPM > 1"
+    ALL_CONTIGS="$SAMPLE_OUT/${SAMPLE}_all_contigs.fasta"
+    PROTEIN_FASTA="$SAMPLE_OUT/${SAMPLE}_all_contigs.fasta.transdecoder.pep"
+    RGI_PREFIX="card_all_${SAMPLE}"
 
-  awk -v sample="${SAMPLE}" '
-    BEGIN { FS=OFS="\t" }
-    NR==1 {
-      for (i=1;i<=NF;i++) if ($i==sample) col=i
-      next
-    }
-    $col > 1 { print $1 }
-  ' "${TPM_FILE}" > "${SAMPLE_OUT}/${SAMPLE}_TPM_gt1.p1_ids.txt"
+    echo "================================================="
+    echo "Processing sample: $SAMPLE"
+    echo "Assembly: $ASM_FASTA"
+    echo "No TPM pre-filter is applied. All assembled contigs are translated."
+    echo "================================================="
 
-  N_IDS=$(wc -l < "${SAMPLE_OUT}/${SAMPLE}_TPM_gt1.p1_ids.txt")
-  echo " Transcripts TPM > 1: ${N_IDS}"
+    cp "$ASM_FASTA" "$ALL_CONTIGS"
 
-  if [[ "${N_IDS}" -eq 0 ]]; then
-    echo " No expressed transcripts for ${SAMPLE}, skipping"
-    continue
-  fi
+    cd "$SAMPLE_OUT"
+    conda activate metatrascriptomics_base
+    TransDecoder.LongOrfs -t "$(basename "$ALL_CONTIGS")"
+    TransDecoder.Predict -t "$(basename "$ALL_CONTIGS")" --no_refine_starts
 
-  sed 's/\.p[0-9]\+$//' \
-    "${SAMPLE_OUT}/${SAMPLE}_TPM_gt1.p1_ids.txt" \
-    | sort -u \
-    > "${SAMPLE_OUT}/${SAMPLE}_TPM_gt1_contigs.txt"
+    if [[ ! -s "$PROTEIN_FASTA" ]]; then
+        echo "ERROR: TransDecoder produced no protein FASTA for $SAMPLE" >&2
+        exit 1
+    fi
 
-  ASM_FASTA="${ASM_DIR}/${SAMPLE}/final.contigs.fa"
+    conda activate card
+    rgi \
+        -i "$(basename "$PROTEIN_FASTA")" \
+        -o "$RGI_PREFIX" \
+        -t protein \
+        -n "$THREADS" \
+        -a BLAST \
+        -e YES
 
-  if [[ ! -f "${ASM_FASTA}" ]]; then
-    echo " Assembly FASTA not found: ${ASM_FASTA}"
-    continue
-  fi
+    cd - >/dev/null
 
-  echo " Extracting FASTA for expressed contigs"
+    printf '%s\t%s\t%s\t%s\n' \
+        "$SAMPLE" \
+        "$ASM_FASTA" \
+        "$PROTEIN_FASTA" \
+        "$SAMPLE_OUT/${RGI_PREFIX}.txt" \
+        >> "$OUTDIR/CARD_manifest.tsv"
 
-  seqtk subseq \
-    "${ASM_FASTA}" \
-    "${SAMPLE_OUT}/${SAMPLE}_TPM_gt1_contigs.txt" \
-    > "${SAMPLE_OUT}/${SAMPLE}_TPM_gt1.fasta"
-
- echo " Running TransDecoder"
-
-echo "🔧 Activating conda environment: metatrascriptomics_base"
-conda activate metatrascriptomics_base
-
-cd "${SAMPLE_OUT}"
-
-TransDecoder.LongOrfs \
-  -t "${SAMPLE}_TPM_gt1.fasta"
-
-TransDecoder.Predict \
-  -t "${SAMPLE}_TPM_gt1.fasta"
-
-cd - > /dev/null
-
-conda activate card
-
-
- echo " Running CARD (RGI)"
-
-  cd "${SAMPLE_OUT}"
-
-  rgi \
-    -i "${SAMPLE}_TPM_gt1.fasta.transdecoder.pep" \
-    -o "card_amr_${SAMPLE}" \
-    -t protein \
-    -n "${THREADS}" \
-    -e loose
-
-  cd - > /dev/null
-
-  echo " Sample ${SAMPLE} finished"
-
+    echo "Completed sample: $SAMPLE"
 done
 
-echo " CARD pipeline PER SAMPLE DONE"
+echo "CARD/RGI analysis of all assembled proteins completed."
+echo "Results: $OUTDIR"
+echo "Manifest: $OUTDIR/CARD_all_proteins_manifest.tsv"
