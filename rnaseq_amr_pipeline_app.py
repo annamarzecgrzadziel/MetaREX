@@ -620,7 +620,8 @@ class Pipeline:
         self.comparative_dir = self.outdir / "10_comparative_analysis"
         self.rnaseq_dir = self.outdir / "13_RNAseq_one_group"
         self.amr_ko_dir = self.outdir / "14_AMR_KO"
-        self.card_dir = self.outdir / "15_CARD"
+        card_subdir = str(config.get("card_output_subdir", "15_CARD")).strip() or "15_CARD"
+        self.card_dir = self.outdir / card_subdir
         self.card_summary_dir = self.outdir / "15a_CARD_analysis"
         self.integration_dir = self.outdir / "16_integracja_CARD_KO"
 
@@ -1694,53 +1695,39 @@ class Pipeline:
             (self.amr_ko_dir / "tables" / "NO_AMR_KO_DETECTED.txt").write_text("No configured AMR KO IDs were detected in the KO matrix.\n", encoding="utf-8")
 
     def card_rgi(self) -> None:
-        tpm_file = self.salmon_matrix_dir / "salmon_TPM_all.tsv"
-        if not tpm_file.exists():
-            raise RuntimeError(f"TPM matrix missing: {tpm_file}")
-        _first, samples, tpm_matrix = read_feature_matrix(tpm_file)
-        threshold = float(self.config.get("card_tpm_threshold", 1.0))
         threads = int(self.config.get("threads", 16))
         failures = 0
-        for sample_idx, sample in enumerate(samples):
+        if not self.samples:
+            raise RuntimeError("No samples are available for CARD/RGI analysis")
+
+        for sample_info in self.samples:
+            sample = sample_info.sample
             sample_out = self.card_dir / sample
             mkdir(sample_out)
-            ids_p = sample_out / f"{sample}_TPM_gt{threshold}.p_ids.txt"
-            contig_ids = sample_out / f"{sample}_TPM_gt{threshold}_contigs.txt"
-            with ids_p.open("w") as handle:
-                for gene, values in tpm_matrix.items():
-                    if values[sample_idx] > threshold:
-                        handle.write(gene + "\n")
-            ids = ids_p.read_text().splitlines()
-            if not ids:
-                self.log(f"SKIP CARD {sample}: no transcripts above TPM>{threshold}")
-                continue
-            sample_prefix = f"{sample}__"
-            with contig_ids.open("w") as handle:
-                for contig in sorted({
-                    re.sub(r"\.p[0-9]+$", "", gene[len(sample_prefix):] if gene.startswith(sample_prefix) else gene)
-                    for gene in ids
-                }):
-                    handle.write(contig + "\n")
             asm_fasta = self.assembly_dir / sample / "final.contigs.fa"
             if not asm_fasta.exists():
                 self.log(f"SKIP CARD {sample}: assembly FASTA missing: {asm_fasta}")
-                continue
-            expressed_fasta = sample_out / f"{sample}_TPM_gt{threshold}.fasta"
-            script_extract = f"seqtk subseq {q(asm_fasta)} {q(contig_ids)} > {q(expressed_fasta)}"
-            rc = self.run_bash("card", script_extract, f"CARD seqtk subseq {sample}", allow_fail=True)
-            if rc != 0 or not expressed_fasta.exists() or expressed_fasta.stat().st_size == 0:
                 failures += 1
                 continue
+
+            all_contigs = sample_out / f"{sample}_all_contigs.fasta"
+            shutil.copy2(asm_fasta, all_contigs)
+            self.log(f"CARD {sample}: using all assembled contigs; no TPM filtering")
+
             script_td = (
-                f"TransDecoder.LongOrfs -t {q(expressed_fasta.name)}\n"
-                f"TransDecoder.Predict -t {q(expressed_fasta.name)} --no_refine_starts"
+                f"TransDecoder.LongOrfs -t {q(all_contigs.name)}\n"
+                f"TransDecoder.Predict -t {q(all_contigs.name)} --no_refine_starts"
             )
             rc = self.run_bash("meta", script_td, f"CARD TransDecoder {sample}", cwd=sample_out, allow_fail=True)
-            pep = sample_out / f"{expressed_fasta.name}.transdecoder.pep"
-            if rc != 0 or not pep.exists():
+            pep = sample_out / f"{all_contigs.name}.transdecoder.pep"
+            if rc != 0 or not pep.exists() or pep.stat().st_size == 0:
                 failures += 1
                 continue
-            script_rgi = f"rgi -i {q(pep)} -o {q('card_amr_' + sample)} -t protein -n {threads} -e loose"
+
+            script_rgi = (
+                f"rgi -i {q(pep.name)} -o {q('card_amr_' + sample)} "
+                f"-t protein -n {threads} -a BLAST -e YES"
+            )
             rc = self.run_bash("card", script_rgi, f"RGI CARD {sample}", cwd=sample_out, allow_fail=True)
             if rc != 0 or not (sample_out / f"card_amr_{sample}.txt").exists():
                 failures += 1
