@@ -15,7 +15,7 @@ dir.create(file.path(outdir, "tables"), showWarnings = FALSE)
 
 card_files <- list.files(
   card_dir,
-  pattern = "^card_amr_.*\\.txt$",
+  pattern = "^card_all_.*\\.txt$",
   recursive = TRUE,
   full.names = TRUE
 )
