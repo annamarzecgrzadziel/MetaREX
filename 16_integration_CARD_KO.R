@@ -121,17 +121,15 @@ aro_mat <- aro_summary %>%
 
 write_tsv(aro_summary, file.path(outdir, "tables", "AMR_ARO_hits_per_sample.tsv"))
 
-ko <- read_tsv(ko_matrix, col_types = cols(.default="c"), show_col_types = FALSE) %>% clean_names()
+ko <- read_tsv(
+  ko_matrix,
+  col_types = cols(.default = "c"),
+  name_repair = "minimal",
+  show_col_types = FALSE
+)
 
-first_col <- colnames(ko)[1]
-
-if (first_col %in% c("ko","k0","ko_id","koid") || str_detect(tolower(first_col), "ko")) {
-  ko_wide <- ko
-  colnames(ko_wide)[1] <- "ko"
-} else {
-  ko_wide <- ko
-  colnames(ko_wide)[1] <- "ko"
-}
+ko_wide <- ko
+colnames(ko_wide)[1] <- "ko"
 
 ko_wide <- ko_wide %>%
   mutate(ko = str_remove(ko, "^ko:"))
@@ -140,8 +138,6 @@ ko_num <- ko_wide %>%
   mutate(across(-ko, ~as.numeric(.x)))  # NAs są OK
 
 sample_cols <- setdiff(colnames(ko_num), "ko")
-
-colnames(ko_num)[colnames(ko_num) %in% sample_cols] <- toupper(sample_cols)
 
 card_samples <- sort(unique(card_filt$sample))
 ko_samples   <- sort(sample_cols)
